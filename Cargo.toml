@@ -8,6 +8,7 @@ caramel = { path = "./caramel", features = ["akari", "log", "ns-api", "ns-xml"]}
 futures-util = "0.3.31"
 lapin = "3.7.2"
 log = { version = "0.4.29", features = ["max_level_debug", "release_max_level_info"] }
+quick-xml = { version = "0.38.4", features = ["serialize"] }
 rand = "0.9.2"
 regex = "1.12.2"
 serde = "1.0.228"

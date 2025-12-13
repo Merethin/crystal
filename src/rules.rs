@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{cache::Cache, config::Rule};
+use crate::{api::can_telegram, cache::Cache, config::Rule};
 
 use caramel::types::akari::Event;
 use log::warn;
@@ -70,6 +70,8 @@ async fn matches_nation_impl(arg: &str, nation: &String, cache: Arc<Cache>) -> b
             }
         } else if command == "is_wa" {
             return cache.wa_nations.read().await.contains(nation);
+        } else if command == "recruitment_disabled" {
+            return !can_telegram(&cache.client, &nation).await;
         } else {
             warn!("Invalid command in rule: '${}'", command);
             return false;

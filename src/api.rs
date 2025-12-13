@@ -1,5 +1,6 @@
 use log::{info, warn};
 use std::collections::HashSet;
+use serde::Deserialize;
 
 use caramel::ns::api::{Client, ApiError};
 use caramel::ns::xml::parse_wa_members;
@@ -43,4 +44,24 @@ pub async fn send_telegram(
     }
 
     return Ok(());
+}
+
+#[derive(Deserialize)]
+struct CanRecruitRoot {
+    #[serde(rename = "TGCANRECRUIT")]
+    pub can_recruit: String,
+}
+
+pub async fn can_telegram(
+    client: &Client, nation: &str
+) -> bool {
+    if let Ok(response) = client.make_request(vec![
+        ("nation", nation), ("q", "tgcanrecruit")
+    ]).await {
+        return quick_xml::de::from_str::<CanRecruitRoot>(&response).and_then(
+            |v| Ok(&v.can_recruit == "1")
+        ).unwrap_or(false);
+    }
+
+    return false;
 }

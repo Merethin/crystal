@@ -18,14 +18,14 @@ event = [ "admit" ]
 regions = [ "*", "!testregionia",
             "!artificial_solar_system",
             "!suspicious" ]
-nations = [ "*", "!$numbered_puppet", "!$roman_puppet" ]
+nations = [ "*", "!$recruitment_disabled", "!$numbered_puppet", "!$roman_puppet" ]
 queue = "recruit-permanent"
 templates = [ "example-recruitment" ]
 
 [rules.retain]
 event = [ "move_from" ]
 regions = [ "testregionia" ]
-nations = [ "$is_wa", "!$numbered_puppet", "!$roman_puppet" ]
+nations = [ "$is_wa", "!$recruitment_disabled", "!$numbered_puppet", "!$roman_puppet" ]
 queue = "recruit-permanent"
 templates = [ "example-recruitment" ]
 

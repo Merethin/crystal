@@ -22,6 +22,7 @@ pub struct Cache {
     pub regex: RwLock<RegexCache>,
     pub wa_nations: RwLock<HashSet<String>>,
     pub wa_signal: mpsc::Sender<()>,
+    pub client: Arc<Client>
 }
 
 pub fn spawn_wa_worker(
@@ -33,6 +34,7 @@ pub fn spawn_wa_worker(
         regex: RwLock::new(RegexCache::new()),
         wa_nations: RwLock::new(HashSet::new()),
         wa_signal: send,
+        client: client.clone()
     });
 
     let cache_clone = cache.clone();
