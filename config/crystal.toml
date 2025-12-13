@@ -1,0 +1,37 @@
+[input]
+url = "amqp://guest:guest@0.0.0.0:5672"
+exchange_name = "akari_events"
+
+[templates]
+example-recruitment = { tgid = "10000000", tg_key = "aabbcc", client_key = "10203040" }
+regional-wa-welcome = { tgid = "10000006", tg_key = "ddeeff", client_key = "10203040" }
+
+[rules.founds]
+event = [ "found", "refound" ]
+regions = [ "*", "!testregionia" ]
+nations = [ "*", "!$numbered_puppet", "!$roman_puppet" ]
+queue = "recruit-ephemeral"
+templates = [ "example-recruitment" ]
+
+[rules.admit]
+event = [ "admit" ]
+regions = [ "*", "!testregionia",
+            "!artificial_solar_system",
+            "!suspicious" ]
+nations = [ "*", "!$numbered_puppet", "!$roman_puppet" ]
+queue = "recruit-permanent"
+templates = [ "example-recruitment" ]
+
+[rules.retain]
+event = [ "move_from" ]
+regions = [ "testregionia" ]
+nations = [ "$is_wa", "!$numbered_puppet", "!$roman_puppet" ]
+queue = "recruit-permanent"
+templates = [ "example-recruitment" ]
+
+[rules.regional_admit]
+event = [ "admit" ]
+regions = [ "testregionia" ]
+nations = [ "*" ]
+queue = "regional"
+templates = [ "regional-wa-welcome" ]
