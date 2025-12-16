@@ -81,8 +81,8 @@ impl TelegramState {
     }
 }
 
-const RECRUITMENT_TELEGRAM_INTERVAL: u64 = 180;
-const NORMAL_TELEGRAM_INTERVAL: u64 = 60;
+const RECRUITMENT_TELEGRAM_INTERVAL: u64 = 181;
+const NORMAL_TELEGRAM_INTERVAL: u64 = 61;
 
 fn can_recruit(last_recruitment_time: &Instant) -> bool {
     calculate_recruit_delay(last_recruitment_time).is_none()
