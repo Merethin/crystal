@@ -21,7 +21,6 @@ pub struct TemplateConfig {
 
 #[derive(Debug)]
 pub struct InputConfig {
-    pub url: String,
     pub exchange_name: String,
 }
 
@@ -130,14 +129,6 @@ pub fn parse_config(path: &str) -> Result<Config, Box<dyn std::error::Error>> {
 
     let input: InputConfig = match table.get("input") {
         Some(toml::Value::Table(t)) => {
-            let url = match t.get("url") {
-                Some(toml::Value::String(s)) => s.clone(),
-                _ => {
-                    error!("Config is missing required 'input.url' value!");
-                    exit(1);
-                }
-            };
-
             let exchange_name = match t.get("exchange_name") {
                 Some(toml::Value::String(s)) => s.clone(),
                 _ => {
@@ -146,7 +137,7 @@ pub fn parse_config(path: &str) -> Result<Config, Box<dyn std::error::Error>> {
                 }
             };
 
-            InputConfig { url, exchange_name }
+            InputConfig { exchange_name }
         },
         _ => {
             error!("Config is missing required 'input' section!");

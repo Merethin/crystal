@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 caramel = { path = "./caramel", features = ["akari", "log", "ns-api", "ns-xml"]}
+dotenv = "0.15.0"
 futures-util = "0.3.31"
 lapin = "3.7.2"
 log = { version = "0.4.29", features = ["max_level_debug", "release_max_level_info"] }

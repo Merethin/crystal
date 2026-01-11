@@ -25,6 +25,8 @@ const CONFIG_PATH: &'static str = "config/crystal.toml";
 async fn main() -> Result<(), Box<dyn Error>> {
     setup_log(vec![]);
 
+    dotenv::dotenv().ok();
+
     let user_agent = UserAgent::read_from_env(PROGRAM, VERSION, AUTHOR);
 
     let config = parse_config(CONFIG_PATH).unwrap_or_else(|err| {
@@ -32,8 +34,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         exit(1);
     });
 
+    let url = std::env::var("RABBITMQ_URL").unwrap_or_else(|err| {
+        error!("Missing RABBITMQ_URL environment variable: {err}");
+        exit(1);
+    });
+
     let conn = lapin::Connection::connect(
-        &config.input.url,
+        &url,
         lapin::ConnectionProperties::default(),
     ).await?;
 
