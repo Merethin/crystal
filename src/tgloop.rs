@@ -125,7 +125,7 @@ async fn telegram_loop(client: Arc<Client>, state: Arc<Mutex<TelegramState>>) {
 
             if let Some(telegram) = queue.dequeue_tg() {
                 info!("Sending telegram {} to nation {} ({})", telegram.tgid, telegram.nation, &queue.identifier);
-                if queue.is_recruitment() { last_recruitment_time = Instant::now(); }
+                last_recruitment_time = Instant::now();
 
                 send_telegram(&client, telegram).await.unwrap_or_else(|err| {
                     warn!("Error sending telegram: {err:?}");
