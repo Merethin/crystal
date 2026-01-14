@@ -18,34 +18,26 @@ pub struct RequestedTelegram {
 }
 
 async fn server_loop(
-    mut consumer: Consumer,
+    consumer: Consumer,
     state: Arc<Mutex<TelegramState>>
 ) {
-    loop {
-        match consumer.next().await {
-            Some(Ok(delivery)) => {
-                if let Err(err) = delivery.ack(BasicAckOptions::default()).await {
-                    error!("Error while acknowledging delivery: {}", err);
-                }
+    consumer.for_each_concurrent(None, move |delivery| {
+        let state = state.clone();
 
-                let telegram: Option<RequestedTelegram> = str::from_utf8(&delivery.data).ok().and_then(
-                    |v| serde_json::from_str(v).ok()
-                );
+        async move {
+            let Ok(delivery) = delivery else { return; };
 
-                if let Some(tg) = telegram {
-                    let mut state = state.lock().await;
-                    
-                    state.add_to_queue(&tg.queue, Telegram::new(
-                        tg.nation, tg.tgid, tg.tg_key, tg.client_key
-                    )).await;
-                }
-            },
-            Some(Err(err)) => {
-                error!("Error from consumer: {}", err);
-            },
-            None => {}
+            if let Err(err) = delivery.ack(BasicAckOptions::default()).await {
+                error!("Error while acknowledging delivery: {}", err);
+            }
+
+            if let Some(tg) = serde_json::from_slice::<RequestedTelegram>(&delivery.data).ok() {
+                state.lock().await.add_to_queue(&tg.queue, Telegram::new(
+                    tg.nation, tg.tgid, tg.tg_key, tg.client_key
+                )).await;
+            }
         }
-    }
+    }).await;
 }
 
 pub async fn start_server_loop(
