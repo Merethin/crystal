@@ -12,7 +12,7 @@ use log::{error, info};
 
 use caramel::{ns::{UserAgent, api::Client}, akari, log::setup_log, types::akari::Event};
 
-use crate::{cache::{Cache, spawn_wa_worker}, server::start_server_loop};
+use crate::{cache::{Cache, spawn_wa_worker}, server::start_api_server};
 use crate::tgloop::{Telegram, TelegramState, start_telegram_loop};
 use crate::config::{Config, parse_config};
 
@@ -39,6 +39,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         exit(1);
     });
 
+    let auth_key = std::env::var("CRYSTAL_AUTH_KEY").unwrap_or_else(|err| {
+        error!("Missing CRYSTAL_AUTH_KEY environment variable: {err}");
+        exit(1);
+    });
+
     let conn = lapin::Connection::connect(
         &url,
         lapin::ConnectionProperties::default(),
@@ -60,7 +65,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
 
     start_telegram_loop(client.clone(), state.clone());
-    start_server_loop(&channel, state.clone()).await?;
+    start_api_server(state.clone(), auth_key).await?;
 
     let mut rng = rand::rng();
     while let Some(event) = akari::consume(&mut consumer).await {

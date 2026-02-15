@@ -1,63 +1,66 @@
 use std::{sync::Arc, error::Error};
 
-use log::error;
-use lapin::{Channel, Consumer, options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions}, types::FieldTable};
+use axum::{
+    Json, Router, extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::post
+};
+
+use log::warn;
 use serde::Deserialize;
 use tokio::sync::Mutex;
-use futures_util::StreamExt;
 
 use crate::tgloop::{Telegram, TelegramState};
 
 #[derive(Debug, Deserialize)]
-pub struct RequestedTelegram {
+pub struct RequestQueryModel {
     queue: String,
-    nation: String,
     tgid: String,
     tg_key: String,
     client_key: String,
+    nations: Vec<String>,
 }
 
-async fn server_loop(
-    consumer: Consumer,
-    state: Arc<Mutex<TelegramState>>
-) {
-    consumer.for_each_concurrent(None, move |delivery| {
-        let state = state.clone();
-
-        async move {
-            let Ok(delivery) = delivery else { return; };
-
-            if let Err(err) = delivery.ack(BasicAckOptions::default()).await {
-                error!("Error while acknowledging delivery: {}", err);
-            }
-
-            if let Some(tg) = serde_json::from_slice::<RequestedTelegram>(&delivery.data).ok() {
-                state.lock().await.add_to_queue(&tg.queue, Telegram::new(
-                    tg.nation, tg.tgid, tg.tg_key, tg.client_key
-                )).await;
-            }
-        }
-    }).await;
+#[derive(Clone)]
+struct ServerState {
+    tg_state: Arc<Mutex<TelegramState>>,
+    auth_key: String,
 }
 
-pub async fn start_server_loop(
-    channel: &Channel,
-    state: Arc<Mutex<TelegramState>>
+async fn add_telegram(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Json(params): Json<RequestQueryModel>,
+) -> impl IntoResponse {
+    let auth_header = headers.get("x-crystal-key").and_then(|header| header.to_str().ok());
+
+    if auth_header != Some(&state.auth_key) {
+        return (StatusCode::FORBIDDEN, "Invalid or missing key").into_response();
+    }
+
+    let mut state = state.tg_state.lock().await;
+
+    for nation in params.nations {
+        state.add_to_queue(&params.queue, 
+            Telegram::new(nation, params.tgid.clone(), params.tg_key.clone(), params.client_key.clone())
+        ).await;
+    }
+
+    (StatusCode::OK, "Success").into_response()
+}
+
+pub async fn start_api_server(
+    state: Arc<Mutex<TelegramState>>,
+    key: String,
 ) -> Result<(), Box<dyn Error>> {
-    let queue = channel.queue_declare(
-        "crystal_server", 
-        QueueDeclareOptions::default(), 
-        FieldTable::default()
-    ).await?;
+    let app = Router::new()
+        .route("/queue", post(add_telegram))
+        .with_state(ServerState { tg_state: state, auth_key: key });
 
-    let consumer = channel.basic_consume(
-        queue.name().as_str(), 
-        "consumer_server", 
-        BasicConsumeOptions::default(),
-        FieldTable::default()
-    ).await?;
-
-    tokio::spawn(async { server_loop(consumer, state).await; });
+    tokio::spawn(async move {
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:6496").await.unwrap();
+        axum::serve(listener, app.into_make_service()).await.unwrap_or_else(|err| {
+            warn!("Error in server: {}", err);
+        });
+    });
 
     Ok(())
 }
