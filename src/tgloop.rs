@@ -81,8 +81,9 @@ impl TelegramState {
     }
 }
 
+// Add one second of buffer time just in case
 const RECRUITMENT_TELEGRAM_INTERVAL: u64 = 181;
-const NORMAL_TELEGRAM_INTERVAL: u64 = 61;
+const NORMAL_TELEGRAM_INTERVAL: u64 = 31;
 
 fn can_recruit(last_recruitment_time: &Instant) -> bool {
     calculate_recruit_delay(last_recruitment_time).is_none()
@@ -125,11 +126,12 @@ async fn telegram_loop(client: Arc<Client>, state: Arc<Mutex<TelegramState>>) {
 
             if let Some(telegram) = queue.dequeue_tg() {
                 info!("Sending telegram {} to nation {} ({})", telegram.tgid, telegram.nation, &queue.identifier);
-                last_recruitment_time = Instant::now();
 
                 send_telegram(&client, telegram).await.unwrap_or_else(|err| {
                     warn!("Error sending telegram: {err:?}");
                 });
+
+                last_recruitment_time = Instant::now();
 
                 sent = true;
                 break;
