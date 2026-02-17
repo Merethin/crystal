@@ -4,7 +4,7 @@ use axum::{
     Json, Router, extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::post
 };
 
-use log::warn;
+use log::{warn, info};
 use serde::Deserialize;
 use tokio::sync::Mutex;
 
@@ -38,10 +38,14 @@ async fn add_telegram(
 
     let mut state = state.tg_state.lock().await;
 
-    for nation in params.nations {
-        state.add_to_queue(&params.queue, 
-            Telegram::new(nation, params.tgid.clone(), params.tg_key.clone(), params.client_key.clone())
-        ).await;
+    let success = state.add_telegrams_to_queue(&params.queue, 
+        params.nations.iter().map(|nation| {
+            Telegram::new(nation.clone(), params.tgid.clone(), params.tg_key.clone(), params.client_key.clone())
+        }).collect()
+    ).await;
+
+    if success {
+        info!("{} nations added to queue '{}', using TGID {}, at external request", params.nations.len(), params.queue, params.tgid);
     }
 
     (StatusCode::OK, "Success").into_response()

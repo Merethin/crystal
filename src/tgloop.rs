@@ -43,6 +43,17 @@ impl TelegramQueue {
         self.queue.push_back(telegram);
     }
 
+    pub fn enqueue_tgs(&mut self, telegrams: Vec<Telegram>) {
+        if self.ephemeral {
+            if let Some(last) = telegrams.into_iter().last() {
+                self.queue.clear();
+                self.queue.push_back(last);
+            }
+        } else {
+            self.queue.append(&mut telegrams.into());
+        }
+    }
+
     pub fn dequeue_tg(&mut self) -> Option<Telegram> {
         self.queue.pop_back()
     }
@@ -62,10 +73,28 @@ impl TelegramState {
         state
     }
 
-    pub async fn add_to_queue(&mut self, queue_name: &str, telegram: Telegram) -> bool {
+    pub async fn add_telegram_to_queue(&mut self, queue_name: &str, telegram: Telegram) -> bool {
         for queue in &mut self.queues {
             if queue.identifier == queue_name {
                 queue.enqueue_tg(telegram);
+
+                if let Some(signal) = &mut self.signal {
+                    signal.send(()).await.unwrap_or_else(|err| {
+                        warn!("Error notifying telegram loop of new nation: {err:?}");
+                    });
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    pub async fn add_telegrams_to_queue(&mut self, queue_name: &str, telegrams: Vec<Telegram>) -> bool {
+        for queue in &mut self.queues {
+            if queue.identifier == queue_name {
+                queue.enqueue_tgs(telegrams);
 
                 if let Some(signal) = &mut self.signal {
                     signal.send(()).await.unwrap_or_else(|err| {

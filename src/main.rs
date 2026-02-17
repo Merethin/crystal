@@ -96,7 +96,7 @@ pub async fn process_event(
                 |key| config.templates.get(key)
             ) && let Some(nation) = &event.actor {
                 let mut state = state.lock().await;
-                let success = state.add_to_queue(&rule.queue, Telegram::new(
+                let success = state.add_telegram_to_queue(&rule.queue, Telegram::new(
                     nation.clone(), template.tgid.clone(), 
                     template.tg_key.clone(), template.client_key.clone()
                 )).await;
